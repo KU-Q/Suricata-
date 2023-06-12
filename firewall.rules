@@ -1,0 +1,406 @@
+#############################################################
+# 1 BACnet      Bacnet协议  需要有效BACnet设备/服务的IP地址
+############################################################
+#	BACNET_CLIENT	IP addresses of valid BACnet clients 
+#	BACNET_DEVICES IP addresses of valid BACnet Devices
+# Alert on a Foreign Device Join attempt  尝试加入外部设备时发出警报
+alert udp any any -> any 47808 (content: "|05|"; offset: 1; depth: 1; msg: "BACnet Foreign Device Join Attempt";sid:1111701;priority:3;rev:1;)
+# 可用规则1
+# Alert on Foreign Device Join attempt by non authorized host  非授权主机尝试加入外部设备时发出警报
+# alert udp !$BACNET_CLIENT any -> any 47808 (content: "|05|"; offset:1; depth:1; msg:"BACnet foreign Device Join Attempt From Non Authorized Host"; sid:1111702;priority:1;rev:1;)
+
+# 未知规则关键字1
+# Alert on a Non Acknowledgement (NAK) of a foreign Device join, this is a device denying access to join to the FDT   对外部设备加入的未确认（NAK）发出警报，这是拒绝加入FDT的设备
+alert udp any 47808 -> any any (content: "|00 30|"; offset: 4; depth: 2; msg: "BACnet Register-Foreign-Device NAK";sid:1111703;priority:3;rev:1;)
+
+# 未知规则关键字2
+# Alert on a BACnet Read Property Attempt, this rule can be altered to allow specific hosts that are allowed to read properties 在BACnet读取属性尝试时发出警报，可以更改此规则以允许允许特定主机读取属性
+ alert udp any any -> any 47808 (content: "|0c|"; offset: 10; depth: 1; msg: "BACnet Read Property Attempt";sid:1111704;priority:3;rev:1;)
+
+# 可用规则2
+# alert udp !$BACNET_CLIENT any -> any 47808 (content: "|0c|"; offset: 10; depth: 1; msg: "BACnet Read Property Attempt From Non Authorized Host";sid:1111705;priority:1;rev:1;)
+
+# Alert on the attempt of a Read-Foreign-Device-Table  尝试读取外部设备表时发出警报
+alert udp any any -> any 47808 (content: "|06|"; offset: 1; depth: 1; msg: "BACnet Read-Foreign-Device-Table Attempt";sid:1111706;priority:3;rev:1;)
+# If foreign device read is replied with a NAK then this will trigger an alert 如果外部设备读取用NAK回复，则会触发警报
+alert udp any 47808 -> any any  (content: "|00 40|"; offset: 4; depth: 2; msg: "BACnet Read-Foreign-Device-Table NAK, Device was denied access to reading the FDT";sid:1111707;priority:3;rev:1;)
+# Alert if there is a Read-Broadcast-Distribution-Table Attempt (BDT) 有读取广播分发表尝试（BDT）时发出警报
+alert udp any any -> any 47808 (content: "|02|"; offset: 1; depth: 1; msg: "BACnet Read-Broadcast-Distribution-Table Attempt";sid:1111708;priority:3;rev:1;)
+# Alter if there is a Read-Broadcast-Distribution-Table NAK  如果存在读取广播分发表NAK，则改变
+alert udp any 47808 -> any any  (content: "|00 20|"; offset: 4; depth: 2; msg: "BACnet Read-Broadcast-Distribution-Table NAK, Device was denied access to reading the BDT";sid:1111709;priority:3;rev:1;) 
+############################################################
+
+
+
+
+
+#2 DNP3  加拿大的HARRIS的DNP3   Distributed Network Protocol 3，分布式网络协议3
+############################################################
+#		DNP3_CLIENT	Valid DNP3 client IP addresses  有效的DNP3客户端IP地址
+#		DNP3_SERVER	Valid DNP3 server IP addresses   有效的DNP3服务器IP地址
+#		DNP3_PORTS	The DNP3 TCP port or ports, typically 20000  DNP3\端口DNP3 TCP端口，通常为20000个
+# 可用规则3
+# alert tcp any any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|15|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Disable Unsolicited Responses"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-dos; sid:1111201; rev:2; priority:2;)
+# 可用规则4
+# alert tcp any any <> $DNP3_SERVER $DNP3_PORTS (flow:established; pcre:"/(?!\x05\x64)/iAR"; msg:"SCADA_IDS: DNP3 - Non-DNP3 Communication on a DNP3 Port"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:non-standard-protocol; sid:1111202; rev:2; priority:2;)
+# 可用规则5
+# alert tcp $DNP3_SERVER $DNP3_PORTS -> $DNP3_CLIENT any (flow:established; content:"|82|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Unsolicited Response Storm"; threshold: type threshold, track by_src, count 5, seconds 10; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-dos; sid:1111203; rev:1; priority:2;) 
+# 可用规则6
+# alert tcp $DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|0D|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Cold Restart From Authorized Client"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-dos; sid:1111204; rev:1; priority:2;) 
+# 可用规则7
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|0D|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Cold Restart From Unauthorized Client"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:denial-of-service; sid:1111205; rev:1; priority:1;) 
+# 可用规则8
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|01|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Unauthorized Read Request to a PLC"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:bad-unknown; sid:1111206; rev:1; priority:2;)
+# 可用规则9
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|05 64|"; depth:2; pcre:"/[\S\s]{10}(\x02|\x04|\x05|\x06|\x09|\x0A|\x0F|\x12)/iAR"; msg:"SCADA_IDS: DNP3 - Unauthorized Write Request to a PLC"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:bad-unknown; sid:1111207; rev:1; priority:1;)
+# 可用规则10
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|05 64|"; depth:2; pcre:"/[\S\s]{10}(\x03|\x07|\x08|\x0B|\x0C|\x10|\x11|\x13|\x14|\x15|\x16|\x17|\x18|\x19|\x1A|\x1B|\x1C|\x1D|\x1E)/iAR"; msg:"SCADA_IDS: DNP3 - Unauthorized Miscellaneous Request to a PLC"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:bad-unknown; sid:1111208; rev:1; priority:1;)
+# 可用规则11
+# alert tcp any any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|12|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Stop Application"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:denial-of-service; sid:1111209; rev:2; priority:2;)
+# 可用规则12
+# alert tcp any any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|0E|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Warm Restart"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-dos; sid:1111210; rev:2; priority:2;) 
+# 可用规则13
+# alert tcp $DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|FF FF|"; offset:4; depth:2; msg:"SCADA_IDS: DNP3 - Broadcast Request from Authorized Client"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:misc-attack; sid:1111211; rev:1; priority:2;)
+# 可用规则14
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|FF FF|"; offset:4; depth:2; msg:"SCADA_IDS: DNP3 - Broadcast Request from Unauthorized Client"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:misc-attack; sid:1111212; rev:1; priority:1;)
+# 可用规则15
+# alert tcp $DNP3_SERVER $DNP3_PORTS -> any any (flow:established; content:"|81|"; offset:12; depth:1; pcre:"/[\S\s]{1}(\x02|\x04|\x06|\x0a|\x0c|\x0e)/iAR";msg:"SCADA_IDS: DNP3 - Points List Scan"; threshold: type threshold, track by_src, count 5, seconds 30; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-recon; sid:1111213; rev:2; priority:2;)	
+# 可用规则16
+# alert tcp $DNP3_SERVER $DNP3_PORTS -> any any (flow:established; content:"|81|"; offset:12; depth:1; pcre:"/[\S\s]{1}(\x01)/iAR"; msg:"SCADA_IDS: DNP3 - Function Code Scan"; threshold: type threshold, track by_src, count 3, seconds 60; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-recon; sid:1111214; rev:2; priority:2;)
+# 可用规则17
+# alert tcp any any <> $DNP3_SERVER $DNP3_PORTS (flow:established; pcre:"/(?!\x05\x64)/iAR"; msg:"SCADA_IDS: DNP3 - Non-DNP3 Communication on a DNP3 Port"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:non-standard-protocol; sid:1111202; rev:1; priority:2;)
+# 可用规则18
+# alert tcp $DNP3_SERVER $DNP3_PORTS -> $DNP3_CLIENT any (flow:established; content:"|82|"; offset:12; depth:1; msg:"SCADA_IDS: DNP3 - Unsolicited Response Storm"; threshold: type threshold, track by_src, count 5, seconds 10; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-dos; sid:1111215; rev:1; priority:2;) 
+# 可用规则19
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|05 64|"; depth:2; pcre:"/[\S\s]{10}(\x02|\x04|\x05|\x06|\x09|\x0A|\x0F|\x12)/iAR"; msg:"SCADA_IDS: DNP3 - Unauthorized Write Request to a PLC"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:bad-unknown; sid:1111207; rev:1; priority:1;)
+# 可用规则20
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|05 64|"; depth:2; pcre:"/[\S\s]{10}(\x03|\x07|\x08|\x0B|\x0C|\x10|\x11|\x13|\x14|\x15|\x16|\x17|\x18|\x19|\x1A|\x1B|\x1C|\x1D|\x1E)/iAR"; msg:"SCADA_IDS: DNP3 - Unauthorized Miscellaneous Request to a PLC"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:bad-unknown; sid:1111208; rev:1; priority:1;)
+# 可用规则21
+# alert tcp $DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|FF FF|"; offset:4; depth:2; msg:"SCADA_IDS: DNP3 - Broadcast Request from Authorized Client"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:misc-attack; sid:1111211; rev:1; priority:2;)
+# 可用规则22
+# alert tcp !$DNP3_CLIENT any -> $DNP3_SERVER $DNP3_PORTS (flow:from_client,established; content:"|FF FF|"; offset:4; depth:2; msg:"SCADA_IDS: DNP3 - Broadcast Request from Unauthorized Client"; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:misc-attack; sid:1111212; rev:1; priority:1;)
+# 可用规则23
+# alert tcp $DNP3_SERVER $DNP3_PORTS -> any any (flow:established; content:"|81|"; offset:12; depth:1; pcre:"/[\S\s]{1}(\x02|\x04|\x06|\x0a|\x0c|\x0e)/iAR";msg:"SCADA_IDS: DNP3 - Points List Scan"; threshold: type threshold, track by_src, count 5, seconds 30; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-recon; sid:1111213; rev:1; priority:2;)	
+# 可用规则24
+# alert tcp $DNP3_SERVER $DNP3_PORTS -> any any (flow:established; content:"|81|"; offset:12; depth:1; pcre:"/[\S\s]{1}(\x01)/iAR"; msg:"SCADA_IDS: DNP3 - Function Code Scan"; threshold: type threshold, track by_src, count 3, seconds 60; reference:url,digitalbond.com/tools/quickdraw/dnp3-rules; classtype:attempted-recon; sid:1111214; rev:1; priority:2;)
+############################################################
+
+
+
+
+
+
+
+
+
+# ENIP  Ethernet/IP
+############################################################
+# Alert on a Request Identity command that was sent via Redpoint Nmap NSE  对通过Redpoint Nmap NSE发送的请求标识命令发出警报
+alert tcp any any -> any 44818 (content: "|63|"; offset: 0; depth: 1; content: "|C1 DE BE D1|"; offset: 16; depth: 4; msg: "TCP EtherNet/IP Request Identity Attempt Via Redpoint Nmap NSE";sid:1111521;priority:3;rev:1;)
+# Alert on a Request Identity command that was sent via Redpoint Nmap NSE  对通过Redpoint Nmap NSE发送的请求标识命令发出警报
+alert udp any any -> any 44818 (content: "|63|"; offset: 0; depth: 1; content: "|C1 DE BE D1|"; offset: 16; depth: 4; msg: "UDP EtherNet/IP Request Identity Attempt Via Redpoint Nmap NSE";sid:1111522;priority:3;rev:1;)
+############################################################
+#新增
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Reboot or Restart from Unauthorized Client"; cip_service:5; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:denial-of-service; sid:1111501; rev:1; priority:1;)
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Reboot or Restart from Unauthorized Client"; cip_service:6; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:denial-of-service; sid:1111502; rev:1; priority:1;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Reboot or Restart from Authorized Client"; cip_service:5; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:denial-of-service; sid:1111503; rev:1; priority:2;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Reboot or Restart from Authorized Client"; cip_service:6; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:denial-of-service; sid:1111504; rev:1; priority:2;)
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Unlock Rockwell PLC Attempt from Unauthorized Client"; cip_service:76; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111505; rev:1; priority:1;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Unlock Rockwell PLC Attempt from Authorized Client"; cip_service:76; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111506; rev:1; priority:2;)
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Lock Rockwell PLC Attempt from Unauthorized Client"; cip_service:77; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111507; rev:1; priority:1;)
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Lock Rockwell PLC Attempt from Unauthorized Client"; cip_service:78; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111508; rev:1; priority:1;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Lock Rockwell PLC Attempt from Authorized Client"; cip_service:77; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111509; rev:1; priority:2;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Lock Rockwell PLC Attempt from Authorized Client"; cip_service:78; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111510; rev:1; priority:2;)
+ 
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Stop Detected from Unauthorized Client"; \
+flow:to_server,established; cip_service:7; reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; \
+classtype:denial-of-service; flowbits:set,detstop; sid:1111511; rev:1; priority:2;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Stop Detected from Authorized Client"; \
+flow:to_server,established; cip_service:7; reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; \
+classtype:denial-of-service; flowbits:set,detstop; sid:1111512; rev:1; priority:2;)
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Rockwell, Remote Mode Change Attempt from Unauthorized Client"; \
+flow:to_server,established; flowbits:isset,detstop; cip_service:76; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111513; rev:1; priority:1;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Rockwell, Remote Mode Change Attempt from Authorized Client"; \
+flow:to_server,established; flowbits:isset,detstop; cip_service:76; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111514; rev:1; priority:2;)
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Rockwell, Software Upload from Unauthorized Client"; cip_service:79; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111515; rev:1;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Rockwell, Software Upload from Authorized Client"; cip_service:79; \
+threshold: type limit, track by_src, seconds 1, count 1; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:misc-attack; sid:1111516; rev:1;)
+
+# Alert on a Request Identity command that was sent via Redpoint Nmap NSE
+alert tcp any any -> any 44818 (content: "|63|"; offset: 0; depth: 1; content: "|C1 DE BE D1|"; offset: 16; depth: 4; \
+msg: "TCP EtherNet/IP Request Identity Attempt Via Redpoint Nmap NSE"; sid:1111517; priority:3;)
+
+# Alert on a Request Identity command that was sent via Redpoint Nmap NSE
+alert udp any any -> any 44818 (content: "|63|"; offset: 0; depth: 1; content: "|C1 DE BE D1|"; offset: 16; depth: 4; \
+msg: "UDP EtherNet/IP Request Identity Attempt Via Redpoint Nmap NSE"; sid:1111518; priority:3;)
+
+alert enip !$ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Stop Detected from Unauthorized Client"; cip_service:7; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:denial-of-service; sid:1111519; rev:1; priority:2;)
+
+alert enip $ENIP_CLIENT any -> $ENIP_SERVER 44818 (msg:"SCADA_IDS: ENIP/CIP - Stop Detected from Authorized Client"; cip_service:7; \
+reference:url,digitalbond.com/tools/quickdraw/ethernetip-rules; classtype:denial-of-service; sid:1111520; rev:1; priority:2;)
+
+
+
+
+
+
+
+
+#3 FOX  Tridium Niagara Fox协议
+############################################################
+# Alert on a command that was is via Redpoint Nmap NSE on TCP/1911  通过TCP/1911上的Redpoint Nmap NSE发出的命令警报
+alert tcp any any -> any 1911 (content: "|66 6f 78|"; offset: 0; depth: 3; content: "|78 70 76 6d 2d 30 6f 6d 64 63 30 31 78 6d 79|"; offset: 59; depth: 15; msg: "Discovery Attempt Via Redpoint Nmap NSE Script (Niagara Fox TCP/1911)";sid:1111101;priority:3;rev:1;)
+# Alert on a command that was is via Redpoint Nmap NSE on TCP/4911  通过TCP/4911上的Redpoint Nmap NSE发出的命令警报
+alert tcp any any -> any 4911 (content: "|66 6f 78|"; offset: 0; depth: 3; content: "|78 70 76 6d 2d 30 6f 6d 64 63 30 31 78 6d 79|"; offset: 59; depth: 15; msg: "Discovery Attempt Via Redpoint Nmap NSE Script (Niagara Fox TCP/4911)";sid:1111102;priority:3;rev:1;)
+############################################################
+
+
+
+
+
+#4 MODBUS  法国施耐德的Modbus
+############################################################
+#		MODBUS_CLIENT	IP addresses of valid Modbus clients 有效Modbus客户端的IP地址
+#		MODBUS_SERVER	IP addresses of valid Modbus servers 有效Modbus服务器的IP地址
+# 可用规则25
+#alert tcp $MODBUS_CLIENT any -> $MODBUS_SERVER 502 (flow:from_client,established; content:"|00 00|"; offset:2; depth:2; content:"|08 00 04|"; offset:7; depth:3; msg:"SCADA_IDS: Modbus TCP - Force Listen Only Mode"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:attempted-dos; sid:1111001; rev:2; priority:1;)
+# 可用规则26
+#alert tcp $MODBUS_CLIENT any -> $MODBUS_SERVER 502 (flow:from_client,established; content:"|00 00|"; offset:2; depth:2; content:"|08 00 01|"; offset:7; depth:3; msg:"SCADA_IDS: Modbus TCP - Restart Communications Option"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:attempted-dos; sid:1111002; rev:2; priority:1;)
+# 可用规则27
+#alert tcp $MODBUS_CLIENT any -> $MODBUS_SERVER 502 (flow:from_client,established; content:"|00 00|"; offset:2; depth:2; content:"|08 00 0A|"; offset:7; depth:3; msg:"SCADA_IDS: Modbus TCP - Clear Counters and Diagnostic Registers"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:misc-attack; sid:1111003; rev:2; priority:3;)
+# 可用规则28
+#alert tcp $MODBUS_CLIENT any -> $MODBUS_SERVER 502 (flow:from_client,established; content:"|00 00|"; offset:2; depth:2; content:"|2B|"; offset:7; depth:1; msg:"SCADA_IDS: Modbus TCP - Read Device Identification"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:attempted-recon; sid:1111004; rev:2; priority:3;)
+# 可用规则29
+#alert tcp $MODBUS_CLIENT any -> $MODBUS_SERVER 502 (flow:from_client,established; content:"|00 00|"; offset:2; depth:2; content:"|11|"; offset:7; depth:1; msg:"SCADA_IDS: Modbus TCP - Report Server Information"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:attempted-recon; sid:1111005; rev:2; priority:3;)
+# 可用规则30
+#alert tcp !$MODBUS_CLIENT any -> $MODBUS_SERVER 502 (flow:from_client,established; content:"|00 00|"; offset:2; depth:2; pcre:"/[\S\s]{3}(\x01|\x02|\x03|\x04|\x07|\x0B|\x0C|\x11|\x14|\x17|\x18|\x2B)/iAR"; msg:"SCADA_IDS: Modbus TCP - Unauthorized Read Request to a PLC"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:bad-unknown; sid:1111006; rev:1; priority:2;)
+# 可用规则31
+#alert tcp !$MODBUS_CLIENT any -> $MODBUS_SERVER 502 (flow:from_client,established; content:"|00 00|"; offset:2; depth:2; pcre:"/[\S\s]{3}(\x05|\x06|\x0F|\x10|\x15|\x16)/iAR"; msg:"SCADA_IDS: Modbus TCP - Unauthorized Write Request to a PLC"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:bad-unknown; sid:1111007; rev:1; priority:1;)
+# 可用规则32
+#alert tcp $MODBUS_CLIENT any <> $MODBUS_SERVER 502 (flow:established; dsize:>300; msg:"SCADA_IDS: Modbus TCP - Illegal Packet Size, Possible DOS Attack"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:non-standard-protocol; sid:1111008; rev:1; priority:1;)
+# 可用规则33
+#alert tcp $MODBUS_CLIENT any <> $MODBUS_SERVER 502 (flow:established; pcre:"/[\S\s]{2}(?!\x00\x00)/iAR"; msg:"SCADA_IDS: Modbus TCP - Non-Modbus Communication on TCP Port 502"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:non-standard-protocol; sid:1111009; rev:1; priority:1;)
+# 可用规则34
+#alert tcp $MODBUS_SERVER 502 -> $MODBUS_CLIENT any (flow:established; content:"|00 00|"; offset:2; depth:2; content:"|06|"; offset:8; depth:1; byte_test: 1, >=, 0x80, 7; msg:"SCADA_IDS: Modbus TCP - Slave Device Busy Exception Code Delay"; threshold: type threshold, track by_src, count 3, seconds 60; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:successful-dos; sid:1111010; rev:2; priority:2;)
+# 可用规则35
+#alert tcp $MODBUS_SERVER 502 -> $MODBUS_CLIENT any (flow:established; content:"|00 00|"; offset:2; depth:2; content:"|05|"; offset:8; depth:1; byte_test: 1, >=, 0x80, 7; msg:"SCADA_IDS: Modbus TCP - Acknowledge Exception Code Delay"; threshold: type threshold, track by_src, count 3, seconds 60; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:successful-dos; sid:1111011; rev:2; priority:2;)
+# 可用规则36
+#alert tcp $MODBUS_SERVER 502 <> $MODBUS_CLIENT any (flow:established; byte_jump:2,4; isdataat:0,relative; msg:"SCADA_IDS: Modbus TCP - Incorrect Packet Length, Possible DOS Attack"; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:non-standard-protocol; sid:1111012; rev:1; priority:2;)
+# 可用规则37
+#alert tcp $MODBUS_SERVER 502 -> $MODBUS_CLIENT any (flow:established; content:"|00 00|"; offset:2; depth:2; byte_test: 1, >=, 0x80, 7; content:"|02|"; offset:8; depth:1; msg:"SCADA_IDS: Modbus TCP - Points List Scan"; threshold: type threshold, track by_src, count 5, seconds 60; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:attempted-recon; sid:1111013; rev:2; priority:2;)
+# 可用规则38
+#alert tcp $MODBUS_SERVER 502 -> $MODBUS_CLIENT any (flow:established; content:"|00 00|"; offset:2; depth:2; byte_test: 1, >=, 0x80, 7; content:"|01|"; offset:8; depth:1; msg:"SCADA_IDS: Modbus TCP - Function Code Scan"; threshold: type threshold, track by_src, count 3, seconds 60; reference:url,digitalbond.com/tools/quickdraw/modbus-tcp-rules; classtype:attempted-recon; sid:1111014; rev:2; priority:2;)
+############################################################
+
+#新增
+#正在写单线圈寄存器
+alert tcp any any -> any 502 (msg:"Modbus TCP/Write Single Coil";content:"|00 00|";offset:2; depth:2; content:"|05|";offset:7;depth:1;sid:8999100;)
+#正在写单个保持寄存器
+alert tcp any any -> any 502 (msg:"Modbus TCP/Write Single Register";content:"|00 00|";offset:2; depth:2; content:"|06|";offset:7;depth:1;sid:8999101;)
+#正在读从站状态
+alert tcp any any -> any 502 (msg:"Modbus TCP/Read Exception Status";content:"|00 00|";offset:2; depth:2; content:"|07|";offset:7;depth:1;sid:8999102;)
+#诊断设备命令
+alert tcp any any -> any 502 (msg:"Modbus TCP/Diagnostics Device";content:"|00 00|";offset:2; depth:2; content:"|08|";offset:7;depth:1;sid:8999103;)
+#正在写多个线圈寄存器
+alert tcp any any -> any 502 (msg:"Modbus TCP/Write Multiple Coils";content:"|00 00|";offset:2; depth:2; content:"|0f|";offset:7;depth:1;sid:8999104;)
+#正在写多个保持寄存器
+alert tcp any any -> any 502 (msg:"Modbus TCP/Write Multiple registers";content:"|00 00|";offset:2; depth:2; content:"|10|";offset:7;depth:1;sid:8999105;)
+#正在写文件参数
+alert tcp any any -> any 502 (msg:"Modbus TCP/Write File Record";content:"|00 00|";offset:2; depth:2; content:"|15|";offset:7;depth:1;sid:8999106;)
+#屏蔽写寄存器
+alert tcp any any -> any 502 (msg:"Modbus TCP/Mask Write Register";content:"|00 00|";offset:2; depth:2; content:"|16|";offset:7;depth:1;sid:8999107;)
+#读写多个寄存器
+alert tcp any any -> any 502 (msg:"Modbus TCP/Read/Write Multiple registers";content:"|00 00|";offset:2; depth:2; content:"|17|";offset:7;depth:1;sid:8999108;)
+#正在枚举设备信息
+alert tcp any any -> any 502 (msg:"Modbus TCP/Read Device Identification";content:"|00 00|";offset:2; depth:2; content:"|2B|";offset:7;depth:1;sid:8999109;)
+#正在枚举施耐德昆腾PLC的内存串号
+alert tcp any any -> any 502 (msg:"Schneider PLC(Quantumn) uses function code 90 for communications the Unity pro software Request Memory Card ID";content:"|00 00|";offset:2;depth:2;content:"|5a|";offset:7;depth:1;content:"|00 06 06|";offset:8;depth:3;sid:8999110;)
+#正在枚举施耐德昆腾PLC的CPU模块信息
+alert tcp any any -> any 502 (msg:"Schneider PLC(Quantumn) uses function code 90 for communications the Unity pro software Request CPU Module info";content:"|00 00|";offset:2;depth:2;content:"|5a|";offset:7;depth:1;content:"|00 02|";offset:8;depth:2;dsize:10;sid:8999111;)
+#正在枚举施耐德昆腾PLC内部的工程名称
+alert tcp any any -> any 502 (msg:"Schneider PLC(Quantumn) uses function code 90 for communications the Unity pro software Request Project Project file name";content:"|00 00|";offset:2;depth:2;content:"|5a|";offset:7;depth:1;content:"|f6 00|";offset:17;depth:2;sid:8999112;)
+#正在枚举施耐德昆腾PLC内部的工程上次修改时间
+alert tcp any any -> any 502 (msg:"Schneider PLC(Quantumn) uses function code 90 for communications the Unity pro software Request Project Information(Revision and Last Modified)";content:"|00 00|";offset:2;depth:2;content:"|5a|";offset:7;depth:1;content:"|03 00|";offset:17;depth:2;sid:8999113;)
+#正在将施耐德昆腾PLC的CPU设置到STOP状态
+alert tcp any any -> any 502 (msg:"Schneider PLC(Quantumn) uses function code 90 for communications the Unity pro software Set PLC CPU STOP";content:"|00 00|";offset:2;depth:2;content:"|5a|";offset:7;depth:1;content:"|40|";offset:9;depth:1;sid:8999114;)
+#正在将施耐德昆腾PLC的CPU设置到RUN状态
+alert tcp any any -> any 502 (msg:"Schneider PLC(Quantumn) uses function code 90 for communications the Unity pro software Set PLC CPU Restart";content:"|00 00|";offset:2;depth:2;content:"|5a|";offset:7;depth:1;content:"|41|";offset:9;depth:1;sid:8999115;)
+
+
+
+
+#5 MODICON
+############################################################
+#	MODICON_CLIENT	IP addresses of valid UnityPro clients 有效UnityPro客户端的IP地址
+# Alert on a ladder Logic download has begun  梯形图逻辑下载警报已开始
+alert tcp any any -> any 502 (flow: established,to_server; content: "|00 5a 01 34 00 01|"; msg: "Schneider Modicon Function Code 90 - Download Ladder Logic Started";sid:1111015;priority:2; threshold:type limit, track by_src, count 1 , seconds 60;rev:1;)
+# Alert on Ladder Logic upload to Modicon PLC over Function Code 90  梯形图逻辑上传至Modicon PLC的警报超过功能代码90
+alert udp any any -> any 502 (flow: established,to_server; content: "|00 5a 00 58 02 01 00 00 00 00 00 fb 00|"; msg: "Schneider Modicon Function Code 90 - Upload Ladder Logic Started";sid:1111016;priority:2;threshold:type limit, track by_src, count 1 , seconds 60;rev:1;)
+# Alert on Ladder Logic Upload from NOT an authorised Client. (e.g. engineering workstation with unity pro) 来自非授权客户端的梯形图逻辑上载警报。（例如带有unity pro的工程工作站）
+## 可用规则39
+# alert udp !$MODICON_CLIENT any -> any 502 (flow: established,to_server; content: "|00 5a 00 58 02 01 00 00 00 00 00 fb 00|"; msg: "Schneider Modicon Function Code 90 - Upload Ladder Logic Started";sid:1111017;priority:1;threshold:type limit, track by_src, count 1 , seconds 60;rev:1;)
+############################################################
+
+
+
+
+
+
+
+#6 OMRON
+############################################################
+#	$FINS_SERVER = Omron PLC
+#	$FINS_CLIENT = Engineering Workstation/HMI
+# Alert on a command that was is via Redpoint Nmap NSE on TCP/9600  通过TCP/9600上的Redpoint Nmap NSE发出的命令警报
+alert tcp any any -> any 9600 (content: "|46 49 4e 53|"; offset: 0; depth: 4; content: "|05 01|"; offset: 26; depth: 2; msg: "OMRON FINS TCP Read Controller Attempt";sid:1111401;priority:3;rev:1;)
+# Alert on a command that was is via Redpoint Nmap NSE on UDP/9600  通过UDP/9600上的Redpoint Nmap NSE发出的命令警报
+alert udp any any -> any 9600 (content: "|80|"; offset: 0; depth: 1; content: "|05 01|"; offset: 10; depth: 2; msg: "OMRON FINS UDP Read Controller Attempt";sid:1111402;priority:3;rev:1;)
+# Alert on a command that was is via Redpoint Nmap NSE on TCP/9600 from Non Authorized Host 通过TCP/9600上的Redpoint Nmap NSE从非授权主机发送的命令发出警报
+## 可用规则40
+#alert tcp !$FINS_CLIENT any -> $FINS_SERVER 9600 (content: "|46 49 4e 53|"; offset: 0; depth: 4; content: "|05 01|"; offset: 26; depth: 2; msg: "OMRON FINS TCP Read Controller Attempt";sid:1111403;priority:1;rev:1;)
+# Alert on a command that was is via Redpoint Nmap NSE on UDP/9600 from Non Authorized Host 通过UDP/9600上的Redpoint Nmap NSE从未授权主机发送的命令发出警报
+## 可用规则41
+#alert udp !$FINS_CLIENT any -> $FINS_SERVER 9600 (content: "|80|"; offset: 0; depth: 1; content: "|05 01|"; offset: 10; depth: 2; msg: "OMRON FINS UDP Read Controller Attempt";sid:1111404;priority:1;rev:1;)
+############################################################
+
+
+
+
+
+
+#7 S7  德国西门子的S7comm
+############################################################
+#   $S7_CLIENT = TIA/Step7/WinCC
+#   $S7_SERVER = S7 PLC
+# Alert on a command that was is via s7-enumerate Redpoint Nmap NSE on TCP/102 通过TCP/102上的s7 enumerate Redpoint Nmap NSE发出的命令警报
+alert tcp any any -> any 102 (content: "|32 07 00 00 00 00 00 08 00 08|"; offset: 0; depth: 10; content: "|00 01 12 04 11 44 01 00|"; offset: 11; depth: 8; msg: "S7 Enumerate Redpoint NSE Request CPU Function Read SZL attempt";sid:1111301;priority:3;rev:1;)
+# Alert on a command that was is via s7-enumerate Redpoint Nmap NSE on TCP/102 from Non Authorized Hosts 对来自未授权主机的通过TCP/102上的s7 enumerate Redpoint Nmap NSE发出的命令发出警报
+## 可用规则42
+#alert tcp !$S7_CLIENT any -> $S7_SERVER 102 (content: "|32 07 00 00 00 00 00 08 00 08|"; offset: 0; depth: 10; content: "|00 01 12 04 11 44 01 00|"; offset: 11; depth: 8; msg: "S7 Enumerate Redpoint NSE Request CPU Function Read SZL attempt From Non Authorized Host";sid:1111302;priority:1;rev:1;)
+
+
+#新增
+#ROSCTR字段只有01（request） 02（acknowledge） 03（response） 07（request user data） 08（request server control）
+alert tcp any any -> any 102 (content:"|32|"; offset:0; depth:1; pcre:"/[\S\s]{5}(?!\x01|\x02|\x03|\x07|\x08)/iAR"; msg:"S7 comm - invalid ROSCTR field "; classtype:bad-unknown; sid:1111303; rev:1; priority:2;)
+#data length field < 20
+alert tcp any any -> any 102 (content:"|32|"; offset:0; depth:1; byte_test:2, >, 20, 8; msg:"S7 comm - Suspicious Value of Data Length Field "; classtype:bad-unknown; sid:1111304; rev:1; priority:2;)
+#alert tcp any any -> any 102 (msg:"COTP CR Connect Request";content:"|03 00|";offset:0;depth:2;content:"|e0 00 00|";offset:5;depth:3;sid:1;)
+#alert tcp any any -> any 102 (msg:"S7 Setup communication";content:"|03 00|";offset:0;depth:2;content:"|32 01 00|";offset:7;depth:3;content:"|f0|";offset:17;depth:1;sid:2;)
+#alert tcp any any -> any 102 (msg:"Read SZL";content:"|03 00|";offset:0;depth:2;content:"|32 07 00|";offset:7;depth:3;content:"|00 01 12 04 11 44 01 00|";offset:17;depth:8;sid:3;)
+#alert tcp any any -> any 102 (msg:"Read SZL ID=0x0011";content:"|03 00|";offset:0;depth:2;content:"|32 07 00|";offset:7;depth:3;content:"|00 01 12 04 11 44 01 00|";offset:17;depth:8;content:"|11 00|";offset:30;depth:2;sid:4;)
+#alert tcp any any -> any 102 (msg:"Read SZL ID=0x001c";content:"|03 00|";offset:0;depth:2;content:"|32 07 00|";offset:7;depth:3;content:"|00 01 12 04 11 44 01 00|";offset:17;depth:8;content:"|1c 00|";offset:30;depth:2;sid:5;)
+#alert tcp any any -> any 102 (msg:"Request Time functions/Read clock";content:"|03 00|";offset:0;depth:2;content:"|32 07 00|";offset:7;depth:3;content:"|00 01 12 04 11 47 01 00|";offset:17;depth:8;sid:6;)
+alert tcp any any -> any 102 (msg:"Request Time functions/Set clock";content:"|03 00|";offset:0;depth:2;content:"|32 07 00|";offset:7;depth:3;content:"|00 01 12 04 11 47 02 00|";offset:17;depth:8;sid:7;)
+alert tcp any any -> any 102 (msg:"Request Security functions/Set PLC session password";content:"|03 00|";offset:0;depth:2;content:"|00 01 12 04 11 45 01 00|";offset:17;depth:8;sid:8;)
+alert tcp any any -> any 102 (msg:"Request CPU functions/Set PLC CPU STOP";content:"|29 00 00 00 00 00 09 50 5f 50 52 4f 47 52 41 4d|";sid:9;)
+alert tcp any any -> any 102 (msg:"Request CPU functions/Set PLC CPU Hot Restart";content:"|28 00 00 00 00 00 00 fd 00 00 09 50 5f 50 52 4f|";sid:10;)
+alert tcp any any -> any 102 (msg:"Request CPU functions/Set PLC CPU Cold Restart";content:"|28 00 00 00 00 00 00 fd 00 02 43 20 09 50 5f 50 52 4f 47 52 41 4d|";sid:11;)
+alert tcp any any -> any 102 (msg:"Write Var";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|05|";offset:17;depth:1;sid:12;)
+alert tcp any any -> any 102 (msg:"Request download";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1a|";offset:17;depth:1;sid:13;)
+alert tcp any any -> any 102 (msg:"Download block";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1b|";offset:17;depth:1;sid:14;)
+alert tcp any any -> any 102 (msg:"Download ended";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1c|";offset:17;depth:1;sid:15;)
+alert tcp any any -> any 102 (msg:"Start upload";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1d|";offset:17;depth:1;sid:16;)
+alert tcp any any -> any 102 (msg:"Upload";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1e|";offset:17;depth:1;sid:17;)
+alert tcp any any -> any 102 (msg:"End upload";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1f|";offset:17;depth:1;sid:18;)
+alert tcp any any -> any 102 (msg:"PLC Control";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|28|";offset:17;depth:1;sid:19;)
+alert tcp any any -> any 102 (msg:"Delet block";content:"|03 00|";offset:0;depth:2;content:"|05 5f 44 45 4c 45|";sid:20;)
+
+#设置S7 PLC内部时钟的时间
+alert tcp any any -> any 102 (msg:"Request Time functions Set clock";content:"|03 00|";offset:0;depth:2;content:"|32 07 00|";offset:7;depth:3;content:"|00 01 12 04 11 47 02 00|";offset:17;depth:8;sid:8999907;)
+#设置与S7 PLC会话的密码
+alert tcp any any -> any 102 (msg:"Request Security functions Set PLC session password";content:"|03 00|";offset:0;depth:2;content:"|00 01 12 04 11 45 01 00|";offset:17;depth:8;sid:8999908;)
+#设置S7 PLC的CPU到STOP状态
+alert tcp any any -> any 102 (msg:"Request CPU functions Set PLC CPU STOP";content:"|29 00 00 00 00 00 09 50 5f 50 52 4f 47 52 41 4d|";sid:8999909;)
+#暖启动S7 PLC的CPU到RUN状态
+alert tcp any any -> any 102 (msg:"Request CPU functions Set PLC CPU Hot Restart";content:"|28 00 00 00 00 00 00 fd 00 00 09 50 5f 50 52 4f|";sid:8999910;)
+#冷启动S7 PLC的CPU到RUN状态
+alert tcp any any -> any 102 (msg:"Request CPU functions Set PLC CPU Cold Restart";content:"|28 00 00 00 00 00 00 fd 00 02 43 20 09 50 5f 50 52 4f 47 52 41 4d|";sid:8999911;)
+#正在写S7 PLC内部的内存变量
+alert tcp any any -> any 102 (msg:"Write Var";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|05|";offset:17;depth:1;sid:8999912;)
+#正在请求下载程序块
+alert tcp any any -> any 102 (msg:"Request download";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1a|";offset:17;depth:1;sid:8999913;)
+#开始请求下载程序块
+alert tcp any any -> any 102 (msg:"Download block";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1b|";offset:17;depth:1;sid:8999914;)
+#程序块下载结束
+alert tcp any any -> any 102 (msg:"Download ended";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1c|";offset:17;depth:1;sid:8999915;)
+#正在请求上载程序块
+alert tcp any any -> any 102 (msg:"Start upload";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1d|";offset:17;depth:1;sid:8999916;)
+#开始上载程序块
+alert tcp any any -> any 102 (msg:"Upload";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1e|";offset:17;depth:1;sid:8999917;)
+#结束上载程序块
+alert tcp any any -> any 102 (msg:"End upload";content:"|03 00|";offset:0;depth:2;content:"|32 01|";offset:7;depth:2;content:"|1f|";offset:17;depth:1;sid:8999918;)
+#删除S7 PLC内部程序块操作
+alert tcp any any -> any 102 (msg:"Delet block";content:"|03 00|";offset:0;depth:2;content:"|05 5f 44 45 4c 45|";sid:8999919;)
+
+
+
+#8 IEC60870-5-104
+############################################################
+#               104_CLIENT : the set of IEC/104 client hosts
+#               104_SERVER : the set of IEC/104 server devices
+#               104_PORT : the port number used by IEC/104 servers
+#---------------------------
+# IEC60870-5-104 RULES
+#---------------------------
+alert tcp !$104_CLIENT any -> $104_SERVER $104_PORT (content:"|68|"; offset:0; depth:1;pcre:"/[\S\s]{5}(\x2d|\x2e|\x2f)/iAR"; msg:"SCADA_IDS: IEC60870-5-104 - Remote Control or Remote Adjustment Command from Unauthorized IEC/104 Client"; classtype:bad-unknown;sid:6666605; rev:1; priority:2;)
+alert tcp !$104_CLIENT any -> $104_SERVER $104_PORT (content:"|68|"; offset:0; depth:1;pcre:"/[\S\s]{5}(\x2d|\x2e|\x2f)/iAR"; msg:"SCADA_IDS: IEC60870-5-104 - Remote Control or Remote Adjustment Command from Unauthorized IEC/104 Client"; classtype:bad-unknown;sid:6666606; rev:1; priority:2;)
+alert tcp !$104_CLIENT any -> $104_SERVER $104_PORT (content:"|68|"; offset:0; depth:1;pcre:"/[\S\s]{5}(\x69)/iAR"; msg:"SCADA_IDS: IEC60870-5-104 - Reset Process Command from Unauthorized IEC/104 Client"; classtype:bad-unknown; sid:6666607; rev:1; priority:2;)
+alert tcp $104_CLIENT any <> $104_SERVER $104_PORT (flow:established; dsize:>255; msg:"SCADA_IDS: IEC60870-5-104 - Illegal Packet Size,Possible DOS ATTACK"; classtype:bad-unknown; sid:6666608; rev:1; priority:2;)
+alert tcp $104_CLIENT any -> $104_SERVER $104_PORT (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(?![\x2D-\x33]|[\x3A-\x40]|[\x64-\x67]|\x69|\x6B|[\x6E-\x71])/iAR"; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Type Identification Field in the Control Direction with I Format"; classtype:bad-unknown; sid:6666611; rev:1; priority:2;)
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(?!\x01|\x03|\x05|\x07|\x09|\x0B|\x0D|\x0F|\x14|\x15|[\x1E-\x28]|\x46|[\x2D-\x33]|[\x3A-\x40]|\x64|\x65|\x67|\x69|\x6B|[\x6E-\x71])/iAR"; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Type Identification Field in the Monitor Direction with I Format"; classtype:bad-unknown; sid:6666612; rev:1; priority:2;)
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(?![\x01-\x0D]|[\x14-\x29])/iAR"; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Cause of Transmission Field with I Format"; classtype:bad-unknown; sid:6666613; rev:1; priority:2;) 
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, &, 1, 2; content:"|04|"; distance:0; within:1; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of the Length Field with U Format"; classtype:bad-unknown; sid:6666614; rev:1; priority:2;)
+alert tcp $104_CLIENT any -> $104_SERVER $104_PORT (flow: established; content:"|68|"; offset:0; depth:1;byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(\x2D|\x2E)/iAR";content:"|04|"; distance:0; within:1; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of the Length Field with U Format or S Format"; classtype:bad-unknown; sid:6666615; rev:1; priority:2;)
+alert tcp $104_CLIENT any -> $104_SERVER $104_PORT (flow: established; content:"|68|"; offset:0; depth:1; pcre:"/[\S\s]{5}(\x2D|\x2E|\x2F|\x30|\x64|\x65)/iAR"; content:!"|06|"; offset: 8; depth: 1; msg:"SCADA_IDS: IEC60870-5-104 – Suspicious Value of Transmission Cause Field"; classtype:bad-unknown; sid:6666617; rev:1; priority:2;)
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; pcre:"/[\S\s]{5}(\x2D|\x2E|\x2F|\x30|\x64|\x65)/iAR"; content:!"|07|"; offset: 8; depth: 1; content:!"|0A|"; offset: 8; depth: 1;msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Transmission Cause Field"; classtype:bad-unknown; sid:6666618; rev:1; priority:2;)
+alert tcp any any -> $104_SERVER !$104_PORT (flow:from_client; msg:"SCADA_IDS: IEC 60870-5-104 - Unauthorized Connection Attempt to a non-IEC/104 Port of a Server"; flags:S; classtype:bad-unknown; sid:6666623; rev:1; priority:2;)
+
+
+# CODESYS SCADA RULES
+#-----------------------------
+#alert tcp any any -> any [1210,1211] (msg:"SCADA CODESYS Gateway-Server directory traversal attempt"; flow:to_server,established; content:"|DD DD|"; depth:2; content:"..|5C|..|5C|WINDOWS|5C|system32|5C|wbem|5C|mof|5C|"; fast_pattern:only; metadata:policy balanced-ips drop, policy connectivity-ips drop, policy security-ips drop; reference:bugtraq,58032; reference:cve,2012-4705; reference:url,ics-cert.us-cert.gov/pdf/ICSA-13-050-01-a.pdf; classtype:attempted-admin; sid:26415; rev:6;)
+#alert tcp any any -> any [1210,1211] (msg:"SCADA CODESYS Gateway-Server executable file upload attempt"; flow:to_server,established; content:"|DD DD|"; depth:2; content:"..|5C|..|5C|"; distance:0; content:"MZ"; distance:0; byte_jump:4,58,relative,little; content:"PE|00 00|"; within:4; distance:-64; metadata:policy balanced-ips drop, policy connectivity-ips drop, policy security-ips drop; reference:bugtraq,58032; reference:cve,2012-4705; reference:url,ics-cert.us-cert.gov/pdf/ICSA-13-050-01-a.pdf; classtype:attempted-admin; sid:26414; rev:6;)
+#alert tcp any any -> any [1210,1211] (msg:"SCADA CODESYS Gateway-Server directory traversal attempt"; flow:to_server,established; content:"|DD DD|"; depth:2; content:".."; within:3; distance:20; content:".."; within:2; distance:1; metadata:policy balanced-ips drop, policy connectivity-ips drop, policy security-ips drop; reference:bugtraq,58032; reference:cve,2012-4705; reference:url,ics-cert.us-cert.gov/pdf/ICSA-13-050-01-a.pdf; classtype:attempted-admin; sid:26488; rev:5;)
+#alert tcp any any -> any [12397,12399] (msg:"SCADA Schneider Electric IGSS integer underflow attempt"; flow:to_server,established; content:"|9E 19 00 00 49 A1 00 00 EF 03 00 00 70 4E 42 73 48 4A 53 59 62 70 58 61 6D 73 64 78 73 54 70 62|"; metadata:policy security-ips drop; reference:cve,2013-0657; classtype:attempted-user; sid:29504; rev:1;)
+#alert tcp any any -> any 502 (msg:"SCADA Tri PLC Nano 10 PLC denial of service attempt"; flow:to_server,established; content:"|00 06|"; depth:2; offset:4; modbus_func:1; modbus_data; content:"|00 00|"; depth:2; offset:2; reference:cve,2013-2784; classtype:denial-of-service; sid:29965; rev:1;)
+#alert tcp any any -> any 20171 (msg:"SCADA Yokogawa CENTUM CS 3000 stack buffer overflow attempt"; flow:to_server,established; content:"|64 A1 18 00 00 00 83 C0 08 8B 20 81 C4 30 F8 FF FF|"; fast_pattern:only; metadata:policy balanced-ips drop, policy security-ips drop; reference:cve,2014-0783; reference:url,www.yokogawa.com/dcs/security/ysar/YSAR-14-0001E.pdf; classtype:attempted-admin; sid:30562; rev:1;)
+#-----------------------------

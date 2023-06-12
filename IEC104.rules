@@ -1,0 +1,32 @@
+####################################################
+#              
+#
+#               104_CLIENT : the set of IEC/104 client hosts
+#               104_SERVER : the set of IEC/104 server devices
+#               104_PORT : the port number used by IEC/104 servers
+#
+#---------------------------
+# IEC60870-5-104 RULES
+#---------------------------
+#
+#
+alert tcp !$104_CLIENT any -> $104_SERVER $104_PORT (content:"|68|"; offset:0; depth:1;pcre:"/[\S\s]{5}(\x2d|\x2e|\x2f)/iAR"; msg:"SCADA_IDS: IEC60870-5-104 - Remote Control or Remote Adjustment Command from Unauthorized IEC/104 Client"; classtype:bad-unknown;sid:6666605; rev:1; priority:2;)
+alert tcp !$104_CLIENT any -> $104_SERVER $104_PORT (content:"|68|"; offset:0; depth:1;pcre:"/[\S\s]{5}(\x2d|\x2e|\x2f)/iAR"; msg:"SCADA_IDS: IEC60870-5-104 - Remote Control or Remote Adjustment Command from Unauthorized IEC/104 Client"; classtype:bad-unknown;sid:6666606; rev:1; priority:2;)
+alert tcp !$104_CLIENT any -> $104_SERVER $104_PORT (content:"|68|"; offset:0; depth:1;pcre:"/[\S\s]{5}(\x69)/iAR"; msg:"SCADA_IDS: IEC60870-5-104 - Reset Process Command from Unauthorized IEC/104 Client"; classtype:bad-unknown; sid:6666607; rev:1; priority:2;)
+alert tcp $104_CLIENT any <> $104_SERVER $104_PORT (flow:established; dsize:>255; msg:"SCADA_IDS: IEC60870-5-104 - Illegal Packet Size,Possible DOS ATTACK"; classtype:bad-unknown; sid:6666608; rev:1; priority:2;)
+alert tcp $104_CLIENT any -> $104_SERVER $104_PORT (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(?![\x2D-\x33]|[\x3A-\x40]|[\x64-\x67]|\x69|\x6B|[\x6E-\x71])/iAR"; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Type Identification Field in the Control Direction with I Format"; classtype:bad-unknown; sid:6666611; rev:1; priority:2;)
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(?!\x01|\x03|\x05|\x07|\x09|\x0B|\x0D|\x0F|\x14|\x15|[\x1E-\x28]|\x46|[\x2D-\x33]|[\x3A-\x40]|\x64|\x65|\x67|\x69|\x6B|[\x6E-\x71])/iAR"; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Type Identification Field in the Monitor Direction with I Format"; classtype:bad-unknown; sid:6666612; rev:1; priority:2;)
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(?![\x01-\x0D]|[\x14-\x29])/iAR"; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Cause of Transmission Field with I Format"; classtype:bad-unknown; sid:6666613; rev:1; priority:2;) 
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; byte_test:1, &, 1, 2; content:"|04|"; distance:0; within:1; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of the Length Field with U Format"; classtype:bad-unknown; sid:6666614; rev:1; priority:2;)
+alert tcp $104_CLIENT any -> $104_SERVER $104_PORT (flow: established; content:"|68|"; offset:0; depth:1;byte_test:1, !&, 1, 2; pcre:"/[\S\s]{5}(\x2D|\x2E)/iAR";content:"|04|"; distance:0; within:1; msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of the Length Field with U Format or S Format"; classtype:bad-unknown; sid:6666615; rev:1; priority:2;)
+alert tcp $104_CLIENT any -> $104_SERVER $104_PORT (flow: established; content:"|68|"; offset:0; depth:1; pcre:"/[\S\s]{5}(\x2D|\x2E|\x2F|\x30|\x64|\x65)/iAR"; content:!"|06|"; offset: 8; depth: 1; msg:"SCADA_IDS: IEC60870-5-104 – Suspicious Value of Transmission Cause Field"; classtype:bad-unknown; sid:6666617; rev:1; priority:2;)
+alert tcp $104_SERVER $104_PORT -> $104_CLIENT any (flow: established; content:"|68|"; offset:0; depth:1; pcre:"/[\S\s]{5}(\x2D|\x2E|\x2F|\x30|\x64|\x65)/iAR"; content:!"|07|"; offset: 8; depth: 1; content:!"|0A|"; offset: 8; depth: 1;msg:"SCADA_IDS: IEC 60870-5-104 – Suspicious Value of Transmission Cause Field"; classtype:bad-unknown; sid:6666618; rev:1; priority:2;)
+#模型：TCP连接启动请求应该从IEC/104客户端发送到服务器
+#      TCP启动连接到IEC/104服务器的端口号应为2404
+#      涉及IEC/104服务器的TCP连接应由授权的IEC/104客户端发送
+#
+#rule 6666623: SYN-only to port(s) 0:2403 w/o direction specified, disabling for toclient direction
+#
+#flags：S rule option pertains to the TCP SYN flag
+#规则选项与TCP SYN标志有关
+alert tcp any any -> $104_SERVER !$104_PORT (flow:from_client; msg:"SCADA_IDS: IEC 60870-5-104 - Unauthorized Connection Attempt to a non-IEC/104 Port of a Server"; flags:S; classtype:bad-unknown; sid:6666623; rev:1; priority:2;)
